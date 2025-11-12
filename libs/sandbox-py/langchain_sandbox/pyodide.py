@@ -4,6 +4,7 @@ import asyncio
 import dataclasses
 import json
 import logging
+from pathlib import Path
 import subprocess
 import time
 from typing import Annotated, Any, Literal
@@ -199,7 +200,7 @@ class BasePyodideSandbox:
 
     def _build_command(
         self,
-        code: str,
+        code: str | Path,
         *,
         session_bytes: bytes | None = None,
         session_metadata: dict | None = None,
@@ -208,7 +209,7 @@ class BasePyodideSandbox:
         """Build the Deno command with all necessary arguments.
 
         Args:
-            code: The Python code to execute
+            code: The Python code or file path to execute
             session_bytes: Optional session state bytes
             session_metadata: Optional session metadata
             memory_limit_mb: Optional memory limit in MB
@@ -231,8 +232,12 @@ class BasePyodideSandbox:
         # Add the path to the JavaScript wrapper script
         cmd.append(PKG_NAME)
 
-        # Add script path and code
-        cmd.extend(["-c", code])
+        if isinstance(code, Path):
+            # Add script path
+            cmd.extend(["-f", str(code)])
+        else:
+            # Add code
+            cmd.extend(["-c", code])
 
         if self.stateful:
             cmd.extend(["-s"])
@@ -257,7 +262,7 @@ class PyodideSandbox(BasePyodideSandbox):
 
     async def execute(
         self,
-        code: str,
+        code: str | Path,
         *,
         session_bytes: bytes | None = None,
         session_metadata: dict | None = None,
@@ -272,7 +277,7 @@ class PyodideSandbox(BasePyodideSandbox):
         sandbox's initialization and the resource constraints provided as arguments.
 
         Args:
-            code: The Python code to execute in the sandbox
+            code: The Python code or file path to execute in the sandbox
             session_bytes: Optional bytes containing session state
             session_metadata: Optional metadata for session state
             timeout_seconds: Maximum execution time in seconds
@@ -355,7 +360,7 @@ class SyncPyodideSandbox(BasePyodideSandbox):
 
     def execute(
         self,
-        code: str,
+        code: str | Path,
         *,
         session_bytes: bytes | None = None,
         session_metadata: dict | None = None,
@@ -368,7 +373,7 @@ class SyncPyodideSandbox(BasePyodideSandbox):
         in a synchronous/blocking manner.
 
         Args:
-            code: The Python code to execute in the sandbox
+            code: The Python code or file path to execute in the sandbox
             session_bytes: Optional bytes containing session state
             session_metadata: Optional metadata for session state
             timeout_seconds: Maximum execution time in seconds
